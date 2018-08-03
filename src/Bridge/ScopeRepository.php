@@ -47,6 +47,14 @@ class ScopeRepository implements ScopeRepositoryInterface
 
         $client = $this->clients->findActive($clientEntity->getIdentifier());
 
+        if (empty($scopes) && !empty($client->scopes)) {
+            return collect($client->scopes)
+                ->map(function($scope) {
+                    return $this->getScopeEntityByIdentifier($scope);
+                })
+                ->all();
+        }
+
         return collect($scopes)->filter(function ($scope) use($client) {
             return Passport::hasScope($scope->getIdentifier())
                 && $client->hasScope($scope->getIdentifier());
