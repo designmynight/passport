@@ -52,6 +52,7 @@ class ScopeRepository implements ScopeRepositoryInterface
                 ->map(function($scope) {
                     return $this->getScopeEntityByIdentifier($scope);
                 })
+                ->values()
                 ->all();
         }
 
