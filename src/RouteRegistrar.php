@@ -3,6 +3,7 @@
 namespace Laravel\Passport;
 
 use Illuminate\Contracts\Routing\Registrar as Router;
+use Laravel\Passport\Http\Middleware\HandleOAuthErrors;
 
 class RouteRegistrar
 {
@@ -48,14 +49,19 @@ class RouteRegistrar
         $this->router->group(['middleware' => ['web', 'auth']], function ($router) {
             $router->get('/authorize', [
                 'uses' => 'AuthorizationController@authorize',
+                'as' => 'passport.authorizations.authorize',
+                'middleware' => [HandleOAuthErrors::class],
             ]);
 
             $router->post('/authorize', [
                 'uses' => 'ApproveAuthorizationController@approve',
+                'as' => 'passport.authorizations.approve',
+                'middleware' => [HandleOAuthErrors::class],
             ]);
 
             $router->delete('/authorize', [
                 'uses' => 'DenyAuthorizationController@deny',
+                'as' => 'passport.authorizations.deny',
             ]);
         });
     }
@@ -69,16 +75,19 @@ class RouteRegistrar
     {
         $this->router->post('/token', [
             'uses' => 'AccessTokenController@issueToken',
-            'middleware' => 'throttle',
+            'as' => 'passport.token',
+            'middleware' => ['throttle', HandleOAuthErrors::class],
         ]);
 
         $this->router->group(['middleware' => ['web', 'auth']], function ($router) {
             $router->get('/tokens', [
                 'uses' => 'AuthorizedAccessTokenController@forUser',
+                'as' => 'passport.tokens.index',
             ]);
 
             $router->delete('/tokens/{token_id}', [
                 'uses' => 'AuthorizedAccessTokenController@destroy',
+                'as' => 'passport.tokens.destroy',
             ]);
         });
     }
@@ -93,6 +102,7 @@ class RouteRegistrar
         $this->router->post('/token/refresh', [
             'middleware' => ['web', 'auth'],
             'uses' => 'TransientTokenController@refresh',
+            'as' => 'passport.token.refresh',
         ]);
     }
 
@@ -106,18 +116,22 @@ class RouteRegistrar
         $this->router->group(['middleware' => ['web', 'auth']], function ($router) {
             $router->get('/clients', [
                 'uses' => 'ClientController@forUser',
+                'as' => 'passport.clients.index',
             ]);
 
             $router->post('/clients', [
                 'uses' => 'ClientController@store',
+                'as' => 'passport.clients.store',
             ]);
 
             $router->put('/clients/{client_id}', [
                 'uses' => 'ClientController@update',
+                'as' => 'passport.clients.update',
             ]);
 
             $router->delete('/clients/{client_id}', [
                 'uses' => 'ClientController@destroy',
+                'as' => 'passport.clients.destroy',
             ]);
         });
     }
@@ -132,18 +146,22 @@ class RouteRegistrar
         $this->router->group(['middleware' => ['web', 'auth']], function ($router) {
             $router->get('/scopes', [
                 'uses' => 'ScopeController@all',
+                'as' => 'passport.scopes.index',
             ]);
 
             $router->get('/personal-access-tokens', [
                 'uses' => 'PersonalAccessTokenController@forUser',
+                'as' => 'passport.personal.tokens.index',
             ]);
 
             $router->post('/personal-access-tokens', [
                 'uses' => 'PersonalAccessTokenController@store',
+                'as' => 'passport.personal.tokens.store',
             ]);
 
             $router->delete('/personal-access-tokens/{token_id}', [
                 'uses' => 'PersonalAccessTokenController@destroy',
+                'as' => 'passport.personal.tokens.destroy',
             ]);
         });
     }

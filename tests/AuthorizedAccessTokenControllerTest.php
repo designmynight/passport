@@ -1,16 +1,20 @@
 <?php
 
-use Mockery\Mock;
+namespace Laravel\Passport\Tests;
+
+use Mockery as m;
+use Laravel\Passport\Token;
 use Illuminate\Http\Request;
 use Laravel\Passport\Client;
 use PHPUnit\Framework\TestCase;
 use Laravel\Passport\TokenRepository;
+use Symfony\Component\HttpFoundation\Response;
 use Laravel\Passport\Http\Controllers\AuthorizedAccessTokenController;
 
 class AuthorizedAccessTokenControllerTest extends TestCase
 {
     /**
-     * @var Mock|TokenRepository
+     * @var \Mockery\Mock|\Laravel\Passport\TokenRepository
      */
     protected $tokenRepository;
 
@@ -19,27 +23,27 @@ class AuthorizedAccessTokenControllerTest extends TestCase
      */
     protected $controller;
 
-    public function tearDown()
-    {
-        Mockery::close();
-    }
-
     public function setUp()
     {
-        $this->tokenRepository = Mockery::mock(TokenRepository::class);
-        $this->controller = new Laravel\Passport\Http\Controllers\AuthorizedAccessTokenController(
-            $this->tokenRepository
-        );
+        $this->tokenRepository = m::mock(TokenRepository::class);
+        $this->controller = new AuthorizedAccessTokenController($this->tokenRepository);
+    }
+
+    public function tearDown()
+    {
+        m::close();
+
+        unset($this->tokenRepository, $this->controller);
     }
 
     public function test_tokens_can_be_retrieved_for_users()
     {
         $request = Request::create('/', 'GET');
 
-        $token1 = new Laravel\Passport\Token;
-        $token2 = new Laravel\Passport\Token;
+        $token1 = new Token;
+        $token2 = new Token;
 
-        $userTokens = Mockery::mock();
+        $userTokens = m::mock();
         $client1 = new Client;
         $client1->personal_access_client = true;
         $client2 = new Client;
@@ -53,7 +57,7 @@ class AuthorizedAccessTokenControllerTest extends TestCase
         $this->tokenRepository->shouldReceive('forUser')->andReturn($userTokens);
 
         $request->setUserResolver(function () use ($token1, $token2) {
-            $user = Mockery::mock();
+            $user = m::mock();
             $user->shouldReceive('getKey')->andReturn(1);
 
             return $user;
@@ -61,7 +65,7 @@ class AuthorizedAccessTokenControllerTest extends TestCase
 
         $tokens = $this->controller->forUser($request);
 
-        $this->assertEquals(1, count($tokens));
+        $this->assertCount(1, $tokens);
         $this->assertEquals($token2, $tokens[0]);
     }
 
@@ -69,20 +73,22 @@ class AuthorizedAccessTokenControllerTest extends TestCase
     {
         $request = Request::create('/', 'GET');
 
-        $token1 = Mockery::mock(Laravel\Passport\Token::class.'[revoke]');
+        $token1 = m::mock(Token::class.'[revoke]');
         $token1->id = 1;
         $token1->shouldReceive('revoke')->once();
 
         $this->tokenRepository->shouldReceive('findForUser')->andReturn($token1);
 
         $request->setUserResolver(function () {
-            $user = Mockery::mock();
+            $user = m::mock();
             $user->shouldReceive('getKey')->andReturn(1);
 
             return $user;
         });
 
-        $this->controller->destroy($request, 1);
+        $response = $this->controller->destroy($request, 1);
+
+        $this->assertEquals(Response::HTTP_NO_CONTENT, $response->status());
     }
 
     public function test_not_found_response_is_returned_if_user_doesnt_have_token()
@@ -92,7 +98,7 @@ class AuthorizedAccessTokenControllerTest extends TestCase
         $this->tokenRepository->shouldReceive('findForUser')->with(3, 1)->andReturnNull();
 
         $request->setUserResolver(function () {
-            $user = Mockery::mock();
+            $user = m::mock();
             $user->shouldReceive('getKey')->andReturn(1);
 
             return $user;

@@ -2,6 +2,9 @@
 
 namespace Laravel\Passport;
 
+use RuntimeException;
+use Illuminate\Support\Str;
+
 class ClientRepository
 {
     /**
@@ -77,6 +80,8 @@ class ClientRepository
      * Get the personal access token client for the application.
      *
      * @return \Laravel\Passport\Client
+     *
+     * @throws \RuntimeException
      */
     public function personalAccessClient()
     {
@@ -85,6 +90,10 @@ class ClientRepository
         }
 
         $client = Passport::personalAccessClient();
+
+        if (! $client->exists()) {
+            throw new RuntimeException('Personal access client not found. Please create one.');
+        }
 
         return $client->orderBy($client->getKeyName(), 'desc')->first()->client;
     }
@@ -104,7 +113,7 @@ class ClientRepository
         $client = Passport::client()->forceFill([
             'user_id' => $userId,
             'name' => $name,
-            'secret' => str_random(40),
+            'secret' => Str::random(40),
             'redirect' => $redirect,
             'personal_access_client' => $personalAccess,
             'password_client' => $password,
@@ -172,7 +181,7 @@ class ClientRepository
     public function regenerateSecret(Client $client)
     {
         $client->forceFill([
-            'secret' => str_random(40),
+            'secret' => Str::random(40),
         ])->save();
 
         return $client;

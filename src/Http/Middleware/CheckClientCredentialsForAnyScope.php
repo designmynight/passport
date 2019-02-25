@@ -13,14 +13,14 @@ use Laravel\Passport\Exceptions\MissingScopeException;
 use League\OAuth2\Server\Exception\OAuthServerException;
 use Symfony\Bridge\PsrHttpMessage\Factory\PsrHttpFactory;
 
-class CheckClientCredentials
+class CheckClientCredentialsForAnyScope
 {
     /**
      * The Resource Server instance.
      *
      * @var \League\OAuth2\Server\ResourceServer
      */
-    protected $server;
+    private $server;
 
     /**
      * Create a new middleware instance.
@@ -40,7 +40,7 @@ class CheckClientCredentials
      * @param  \Closure  $next
      * @param  mixed  ...$scopes
      * @return mixed
-     * @throws \Illuminate\Auth\AuthenticationException
+     * @throws \Illuminate\Auth\AuthenticationException|\Laravel\Passport\Exceptions\MissingScopeException
      */
     public function handle($request, Closure $next, ...$scopes)
     {
@@ -57,9 +57,11 @@ class CheckClientCredentials
             throw new AuthenticationException;
         }
 
-        $this->validateScopes($psr, $scopes);
+        if ($this->validateScopes($psr, $scopes)) {
+            return $next($request);
+        }
 
-        return $next($request);
+        throw new MissingScopeException($scopes);
     }
 
     /**
@@ -67,19 +69,20 @@ class CheckClientCredentials
      *
      * @param  \Psr\Http\Message\ServerRequestInterface $psr
      * @param  array  $scopes
-     * @return void
-     * @throws \Laravel\Passport\Exceptions\MissingScopeException
+     * @return bool
      */
     protected function validateScopes($psr, $scopes)
     {
         if (in_array('*', $tokenScopes = $psr->getAttribute('oauth_scopes'))) {
-            return;
+            return true;
         }
 
         foreach ($scopes as $scope) {
-            if (! in_array($scope, $tokenScopes)) {
-                throw new MissingScopeException($scope);
+            if (in_array($scope, $tokenScopes)) {
+                return true;
             }
         }
+
+        return false;
     }
 }

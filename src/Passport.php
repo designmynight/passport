@@ -39,6 +39,13 @@ class Passport
     public static $personalAccessClientId;
 
     /**
+     * The default scope.
+     *
+     * @var string
+     */
+    public static $defaultScope;
+
+    /**
      * All of the scopes defined for the application.
      *
      * @var array
@@ -60,6 +67,13 @@ class Passport
      * @var \DateTimeInterface|null
      */
     public static $refreshTokensExpireAt;
+
+    /**
+     * The date when personal access tokens expire.
+     *
+     * @var \DateTimeInterface|null
+     */
+    public static $personalAccessTokensExpireAt;
 
     /**
      * The name for API token cookies.
@@ -111,11 +125,25 @@ class Passport
     public static $tokenModel = 'Laravel\Passport\Token';
 
     /**
+     * The refresh token model class name.
+     *
+     * @var string
+     */
+    public static $refreshTokenModel = 'Laravel\Passport\RefreshToken';
+
+    /**
      * Indicates if Passport migrations will be run.
      *
      * @var bool
      */
     public static $runsMigrations = true;
+
+    /**
+     * Indicates if Passport should unserializes cookies.
+     *
+     * @var bool
+     */
+    public static $unserializesCookies = false;
 
     /**
      * Enable the implicit grant type.
@@ -189,6 +217,17 @@ class Passport
         static::$personalAccessClientId = $clientId;
 
         return new static;
+    }
+
+    /**
+     * Set the default scope(s). Multiple scopes may be an array or specified delimited by spaces.
+     *
+     * @param  array|string  $scope
+     * @return void
+     */
+    public static function setDefaultScope($scope)
+    {
+        static::$defaultScope = is_array($scope) ? implode(' ', $scope) : $scope;
     }
 
     /**
@@ -291,6 +330,25 @@ class Passport
     }
 
     /**
+     * Get or set when personal access tokens expire.
+     *
+     * @param  \DateTimeInterface|null  $date
+     * @return \DateInterval|static
+     */
+    public static function personalAccessTokensExpireIn(DateTimeInterface $date = null)
+    {
+        if (is_null($date)) {
+            return static::$personalAccessTokensExpireAt
+                ? Carbon::now()->diff(static::$personalAccessTokensExpireAt)
+                : new DateInterval('P1Y');
+        }
+
+        static::$personalAccessTokensExpireAt = $date;
+
+        return new static;
+    }
+
+    /**
      * Get or set the name for API token cookies.
      *
      * @param  string|null  $cookie
@@ -310,8 +368,8 @@ class Passport
     /**
      * Indicate that Passport should ignore incoming CSRF tokens.
      *
-     * @param  boolean|null  $ignoreCsrfToken
-     * @return boolean|static
+     * @param  bool  $ignoreCsrfToken
+     * @return static
      */
     public static function ignoreCsrfToken($ignoreCsrfToken = true)
     {
@@ -323,7 +381,7 @@ class Passport
     /**
      * Set the current user for the application with the given scopes.
      *
-     * @param  \Illuminate\Contracts\Auth\Authenticatable  $user
+     * @param  \Illuminate\Contracts\Auth\Authenticatable|\Laravel\Passport\HasApiTokens  $user
      * @param  array  $scopes
      * @param  string  $guard
      * @return \Illuminate\Contracts\Auth\Authenticatable
@@ -496,6 +554,37 @@ class Passport
     }
 
     /**
+     * Set the refresh token model class name.
+     *
+     * @param  string  $refreshTokenModel
+     * @return void
+     */
+    public static function useRefreshTokenModel($refreshTokenModel)
+    {
+        static::$refreshTokenModel = $refreshTokenModel;
+    }
+
+    /**
+     * Get the refresh token model class name.
+     *
+     * @return string
+     */
+    public static function refreshTokenModel()
+    {
+        return static::$refreshTokenModel;
+    }
+
+    /**
+     * Get a new refresh token model instance.
+     *
+     * @return \Laravel\Passport\RefreshToken
+     */
+    public static function refreshToken()
+    {
+        return new static::$refreshTokenModel;
+    }
+
+    /**
      * Configure Passport to not register its migrations.
      *
      * @return static
@@ -503,6 +592,30 @@ class Passport
     public static function ignoreMigrations()
     {
         static::$runsMigrations = false;
+
+        return new static;
+    }
+
+    /**
+     * Instruct Passport to enable cookie serialization.
+     *
+     * @return static
+     */
+    public static function withCookieSerialization()
+    {
+        static::$unserializesCookies = true;
+
+        return new static;
+    }
+
+    /**
+     * Instruct Passport to disable cookie serialization.
+     *
+     * @return static
+     */
+    public static function withoutCookieSerialization()
+    {
+        static::$unserializesCookies = false;
 
         return new static;
     }
