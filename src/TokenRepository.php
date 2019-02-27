@@ -70,10 +70,10 @@ class TokenRepository
     /**
      * Store the given token instance.
      *
-     * @param  Any  $token
+     * @param  \Laravel\Passport\Token  $token
      * @return void
      */
-    public function save($token)
+    public function save(Token $token)
     {
         $token->save();
     }

@@ -39,7 +39,6 @@ class Client extends Model
         'personal_access_client' => 'bool',
         'password_client' => 'bool',
         'revoked' => 'bool',
-        'scopes' => 'array',
     ];
 
     /**
@@ -62,17 +61,6 @@ class Client extends Model
     public function authCodes()
     {
         return $this->hasMany(Passport::authCodeModel(), 'client_id');
-    }
-
-    /**
-     * Determine if the client has the given scope.
-     *
-     * @param  string  $id
-     * @return bool
-     */
-    public function hasScope($id)
-    {
-        return ! is_array($this->scopes) || empty($this->scopes) || array_key_exists($id, $this->scopes);
     }
 
     /**
